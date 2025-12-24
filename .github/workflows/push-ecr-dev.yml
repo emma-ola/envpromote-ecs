@@ -1,4 +1,4 @@
-name: Push Image to ECR (dev)
+name: Build & Push Image to ECR (dev)
 
 on:
   push:
@@ -14,6 +14,10 @@ jobs:
       id-token: write
       contents: read
 
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      digest: ${{ steps.digest.outputs.digest }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -27,22 +31,36 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build image
-        run: docker build -t envpromote-ecs:${{ github.sha }} ./app
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Tag image for ECR
+      - name: Compute image tags
+        id: meta
         run: |
-          docker tag envpromote-ecs:${{ github.sha }} ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
-          docker tag envpromote-ecs:${{ github.sha }} ${{ secrets.ECR_REPOSITORY_URL }}:latest
+          echo "image=${{ secrets.ECR_REPOSITORY_URL }}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Push image to ECR
+      - name: Build & push (with cache)
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # docker/build-push-action exposes the digest as an output
+      - name: Capture digest
+        id: digest
         run: |
-          docker push ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
-          docker push ${{ secrets.ECR_REPOSITORY_URL }}:latest
+          echo "digest=${{ steps.build-push.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
       - name: Job summary
         run: |
-          echo "### ✅ Pushed to ECR" >> $GITHUB_STEP_SUMMARY
-          echo "- Repo: \`${{ secrets.ECR_REPOSITORY_URL }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Tag (sha): \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Tag: \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Built & pushed to ECR (dev)" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`${{ steps.meta.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tags: \`${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest: \`${{ steps.build-push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
