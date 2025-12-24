@@ -24,11 +24,15 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          pwd
+          npm install
 
       - name: Run tests
         run: npm test
 
       - name: Docker build
         working-directory: .
-        run: docker build -t envpromote-ecs:ci ./app
+        run: |
+          pwd
+          docker build -t envpromote-ecs:ci ./app
