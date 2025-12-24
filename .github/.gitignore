@@ -1,0 +1,14 @@
+# GitHub Actions workflow artifacts
+*.log
+
+# Workflow run artifacts (if downloaded locally)
+artifacts/
+
+# Local workflow testing tools
+act/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
