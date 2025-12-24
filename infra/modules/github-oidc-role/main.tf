@@ -68,7 +68,8 @@ data "aws_iam_policy_document" "permissions" {
       "ecr:PutImage",
       "ecr:UploadLayerPart",
       "ecr:DescribeRepositories",
-      "ecr:ListImages"
+      "ecr:ListImages",
+      "ecr:DescribeImages"
     ]
     resources = [var.ecr_repository_arn]
   }
