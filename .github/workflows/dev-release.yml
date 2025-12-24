@@ -20,7 +20,6 @@ jobs:
     environment: dev
 
     outputs:
-      image_uri: ${{ steps.out.outputs.image_uri }}
       digest: ${{ steps.buildpush.outputs.digest }}
 
     steps:
@@ -51,17 +50,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Compute immutable image URI
-        id: out
-        run: |
-          echo "image_uri=${{ secrets.ECR_REPOSITORY_URL }}@${{ steps.buildpush.outputs.digest }}" >> "$GITHUB_OUTPUT"
-
       - name: Summary
         run: |
           echo "### ✅ Built & pushed" >> $GITHUB_STEP_SUMMARY
           echo "- Image: \`${{ secrets.ECR_REPOSITORY_URL }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Digest: \`${{ steps.buildpush.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Immutable URI: \`${{ steps.out.outputs.image_uri }}\`" >> $GITHUB_STEP_SUMMARY
 
   deploy:
     name: Deploy to ECS
@@ -84,13 +77,18 @@ jobs:
           sed -i.bak "s|EXEC_ROLE_ARN_PLACEHOLDER|${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }}|g" app/ecs-taskdef.json
           rm -f app/ecs-taskdef.json.bak
 
+      - name: Compute immutable image URI
+        id: image
+        run: |
+          echo "image_uri=${{ secrets.ECR_REPOSITORY_URL }}@${{ needs.build_push.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
       - name: Render task definition with digest image
         id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: app/ecs-taskdef.json
           container-name: ${{ secrets.CONTAINER_NAME }}
-          image: ${{ needs.build_push.outputs.image_uri }}
+          image: ${{ steps.image.outputs.image_uri }}
 
       - name: Deploy to ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
