@@ -1,0 +1,23 @@
+name: Dev - Build & Deploy
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      environment: dev
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/reusable-deploy-ecs.yml
+    with:
+      environment: dev
+      digest: ${{ needs.build.outputs.digest }}
