@@ -14,3 +14,6 @@ act/
 *.swo
 
 .DS_Store
+
+# Node.js dependencies
+node_modules/
