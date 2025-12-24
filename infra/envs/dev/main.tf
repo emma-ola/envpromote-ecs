@@ -22,10 +22,32 @@ module "github_oidc_role" {
   tags               = local.tags
 }
 
+module "ecs_app" {
+  source = "../../modules/ecs-fargate-service"
+  environment = "dev"
+  image = "${module.ecr.repository_url}:latest"
+  name = "envpromote-ecs"
+  desired_count = 1
+  cpu = 256
+  memory = 512
+}
+
 output "ecr_repository_url" {
   value = module.ecr.repository_url
 }
 
 output "github_actions_role_arn" {
   value = module.github_oidc_role.role_arn
+}
+
+output "dev_alb_url" {
+  value = "http://${module.ecs_app.alb_dns_name}"
+}
+
+output "dev_ecs_cluster_name" {
+  value = module.ecs_app.ecs_cluster_name
+}
+
+output "dev_ecs_service_name" {
+  value = module.ecs_app.ecs_service_name
 }
