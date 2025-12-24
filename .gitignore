@@ -17,3 +17,14 @@ act/
 
 # Node.js dependencies
 node_modules/
+
+# Terraform
+**/.terraform/*
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/crash.log
+
+# Optional: terraform plan files
+**/*.tfplan
+
