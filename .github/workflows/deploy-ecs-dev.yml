@@ -24,6 +24,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Inject execution role into task definition template
+        run: |
+          sed -i.bak "s|EXEC_ROLE_ARN_PLACEHOLDER|${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }}|g" app/ecs-taskdef.json
+          rm -f app/ecs-taskdef.json.bak
+
       - name: Render task definition with new image
         id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1

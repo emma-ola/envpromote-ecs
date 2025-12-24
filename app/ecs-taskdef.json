@@ -4,6 +4,7 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
+  "executionRoleArn": "EXEC_ROLE_ARN_PLACEHOLDER",
   "containerDefinitions": [
     {
       "name": "envpromote-ecs",

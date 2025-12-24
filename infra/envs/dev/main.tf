@@ -52,3 +52,7 @@ output "dev_ecs_cluster_name" {
 output "dev_ecs_service_name" {
   value = module.ecs_app.ecs_service_name
 }
+
+output "dev_task_execution_role_arn" {
+  value = module.ecs_app.task_execution_role_arn
+}
