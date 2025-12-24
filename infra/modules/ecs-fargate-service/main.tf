@@ -188,6 +188,10 @@ resource "aws_ecs_service" "this" {
 
   depends_on = [aws_lb_listener.http]
 
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
   tags = var.tags
 }
 
