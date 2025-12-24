@@ -30,6 +30,7 @@ module "ecs_app" {
   desired_count = 1
   cpu = 256
   memory = 512
+  tags = local.tags
 }
 
 output "ecr_repository_url" {
