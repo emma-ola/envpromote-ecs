@@ -40,6 +40,7 @@ output "github_actions_role_arn" {
   value = module.github_oidc_role.role_arn
 }
 
+# noinspection HttpUrlsUsage
 output "dev_alb_url" {
   value = "http://${module.ecs_app.alb_dns_name}"
 }
