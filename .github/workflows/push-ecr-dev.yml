@@ -1,0 +1,48 @@
+name: Push Image to ECR (dev)
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: docker build -t envpromote-ecs:${{ github.sha }} ./app
+
+      - name: Tag image for ECR
+        run: |
+          docker tag envpromote-ecs:${{ github.sha }} ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
+          docker tag envpromote-ecs:${{ github.sha }} ${{ secrets.ECR_REPOSITORY_URL }}:latest
+
+      - name: Push image to ECR
+        run: |
+          docker push ${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}
+          docker push ${{ secrets.ECR_REPOSITORY_URL }}:latest
+
+      - name: Job summary
+        run: |
+          echo "### ✅ Pushed to ECR" >> $GITHUB_STEP_SUMMARY
+          echo "- Repo: \`${{ secrets.ECR_REPOSITORY_URL }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag (sha): \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: \`latest\`" >> $GITHUB_STEP_SUMMARY
