@@ -10,6 +10,14 @@ on:
         required: false
         type: string
         default: ./app
+    secrets:
+      AWS_ROLE_ARN:
+        required: true
+      AWS_REGION:
+        required: true
+      ECR_REPOSITORY_URL:
+        required: true
+
     outputs:
       digest:
         description: Image digest pushed to ECR
@@ -31,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Configure AWS credential (OIDC)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5.1.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}

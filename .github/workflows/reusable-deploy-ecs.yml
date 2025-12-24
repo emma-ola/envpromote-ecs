@@ -13,6 +13,21 @@ on:
         required: false
         type: string
         default: app/ecs-taskdef.json
+    secrets:
+      AWS_ROLE_ARN:
+        required: true
+      AWS_REGION:
+        required: true
+      ECR_REPOSITORY_URL:
+        required: true
+      ECS_TASK_EXECUTION_ROLE_ARN:
+        required: true
+      ECS_CLUSTER:
+        required: true
+      ECS_SERVICE:
+        required: true
+      CONTAINER_NAME:
+        required: true
 
 jobs:
   deploy:
