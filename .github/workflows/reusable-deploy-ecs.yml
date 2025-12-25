@@ -126,3 +126,41 @@ jobs:
         run: |
           echo "### ✅ Deployed to ECS (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
           echo "- Image (immutable): \`${{ steps.image.outputs.image_uri }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Write promotion record
+        if: always()
+        id: record
+        run: |
+          set -euo pipefail
+          TS="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          STATUS="${{ job.status }}"
+          ENV="${{ inputs.environment }}"
+          DIGEST="${{ inputs.digest }}"
+          IMAGE_URI="${{ secrets.ECR_REPOSITORY_URL }}@${{ inputs.digest }}"
+
+          mkdir -p promotion-history
+
+          cat > "promotion-history/${ENV}-${{ github.run_id }}-${{ github.run_attempt }}.json" <<EOF
+          {
+            "timestamp_utc": "${TS}",
+            "environment": "${ENV}",
+            "digest": "${DIGEST}",
+            "image_uri": "${IMAGE_URI}",
+            "status": "${STATUS}",
+            "actor": "${{ github.actor }}",
+            "repo": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": ${{ github.run_id }},
+            "run_attempt": ${{ github.run_attempt }},
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Upload promotion history artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promotion-history-${{ inputs.environment }}-${{ github.run_id }}
+          path: promotion-history/*.json
+          retention-days: 30
