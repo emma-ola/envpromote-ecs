@@ -71,7 +71,7 @@ jobs:
         run: |
           echo "### ✅ Digest resolved" >> $GITHUB_STEP_SUMMARY
           echo "- Digest: \`${{ steps.out.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Tag used (if any): \`${{ inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag used: \`${{ inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
 
   deploy_staging:
     name: Deploy to ECS
