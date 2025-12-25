@@ -11,11 +11,21 @@
       "image": "REPLACE_AT_DEPLOY_TIME",
       "essential": true,
       "portMappings": [
-        { "containerPort": 3000, "hostPort": 3000, "protocol": "tcp" }
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
       ],
       "environment": [
-        { "name": "APP_ENV", "value": "staging" },
-        { "name": "APP_VERSION", "value": "staging" }
+        {
+          "name": "APP_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "APP_VERSION",
+          "value": "staging"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

@@ -18,8 +18,14 @@
         }
       ],
       "environment": [
-        { "name": "APP_ENV", "value": "dev" },
-        { "name": "APP_VERSION", "value": "dev" }
+        {
+          "name": "APP_ENV",
+          "value": "dev"
+        },
+        {
+          "name": "APP_VERSION",
+          "value": "dev"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
