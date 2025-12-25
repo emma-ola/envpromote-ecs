@@ -186,6 +186,17 @@ resource "aws_ecs_service" "this" {
     container_port   = var.container_port
   }
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  health_check_grace_period_seconds  = 60
+
+
   depends_on = [aws_lb_listener.http]
 
   lifecycle {
