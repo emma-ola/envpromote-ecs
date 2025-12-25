@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       digest:
-        description: "Optional. If blank, we will resolve the latest digest from ECR."
+        description: "Digest. If blank, we will resolve the latest digest from ECR."
         required: false
         type: string
       tag:
