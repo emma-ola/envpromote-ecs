@@ -1,0 +1,90 @@
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Digest. If blank, we will resolve the latest digest from ECR."
+        required: false
+        type: string
+      tag:
+        description: "Which tag to resolve to a digest when digest is blank (default: latest)."
+        required: false
+        default: "latest"
+        type: string
+
+concurrency:
+  group: production-promotion
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  resolve_digest:
+    name: Resolve digest
+    runs-on: ubuntu-latest
+    environment: production
+
+    outputs:
+      digest: ${{ steps.out.outputs.digest }}
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Resolve digest (use input if provided, else query ECR)
+        id: out
+        env:
+          INPUT_DIGEST: ${{ inputs.digest }}
+          INPUT_TAG: ${{ inputs.tag }}
+          ECR_URL: ${{ secrets.ECR_REPOSITORY_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_DIGEST}" ]; then
+            echo "digest=${INPUT_DIGEST}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          REPO_NAME="$(echo "$ECR_URL" | awk -F/ '{print $2}')"
+
+          DIGEST=$(aws ecr describe-images \
+            --repository-name "$REPO_NAME" \
+            --image-ids imageTag="$INPUT_TAG" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "None" ]; then
+            echo "Could not find a digest for tag '$INPUT_TAG' in repo '$REPO_NAME'."
+            exit 1
+          fi
+
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          echo "### ✅ Digest resolved" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest: \`${{ steps.out.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag used: \`${{ inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy_production:
+    name: Deploy to ECS
+    needs: resolve_digest
+    uses: ./.github/workflows/reusable-deploy-ecs.yml
+    with:
+      environment: production
+      digest: ${{ needs.resolve_digest.outputs.digest }}
+      taskdef_path: app/ecs-taskdef.production.json
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY_URL: ${{ secrets.ECR_REPOSITORY_URL }}
+      ECS_TASK_EXECUTION_ROLE_ARN: ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }}
+      ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+      ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+      CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
