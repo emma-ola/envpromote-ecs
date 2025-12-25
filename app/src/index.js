@@ -5,7 +5,7 @@ const port = process.env.PORT || 3000;
 
 // Health endpoint for ECS / ALB
 app.get("/health", (req, res) => {
-    res.status(500).json({status: "failing"});
+    res.status(200).json({ status: "ok" });
 });
 
 // Root endpoint
