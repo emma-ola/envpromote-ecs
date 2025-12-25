@@ -1,0 +1,33 @@
+name: Promote to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Image digest to deploy (e.g. sha256:abed...)"
+        required: true
+        type: string
+
+concurrency:
+  group: staging-promotion
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy_staging:
+    name: Deploy to ECS (staging)
+    uses: ./.github/workflows/reusable-deploy-ecs.yml
+    with:
+      environment: staging
+      digest: ${{ inputs.digest }}
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY_URL: ${{ secrets.ECR_REPOSITORY_URL }}
+      ECS_TASK_EXECUTION_ROLE_ARN: ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }}
+      ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+      ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+      CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
