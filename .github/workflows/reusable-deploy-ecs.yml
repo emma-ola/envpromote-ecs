@@ -86,6 +86,42 @@ jobs:
           cluster: ${{ secrets.ECS_CLUSTER }}
           wait-for-service-stability: true
 
+      - name: Verify service is running the promoted digest
+        run: |
+          set -euo pipefail
+
+          CLUSTER="${{ secrets.ECS_CLUSTER }}"
+          SERVICE="${{ secrets.ECS_SERVICE }}"
+          EXPECTED_DIGEST="${{ inputs.digest }}"
+
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster "$CLUSTER" \
+            --service-name "$SERVICE" \
+            --desired-status RUNNING \
+            --query 'taskArns[0]' \
+            --output text)
+
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "No running tasks found for service $SERVICE"
+            exit 1
+          fi
+
+          RUNNING_DIGEST=$(aws ecs describe-tasks \
+            --cluster "$CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].imageDigest' \
+            --output text)
+
+          echo "Expected: $EXPECTED_DIGEST"
+          echo "Running:  $RUNNING_DIGEST"
+
+          if [ "$RUNNING_DIGEST" != "$EXPECTED_DIGEST" ]; then
+            echo "❌ Service is NOT running the promoted digest. Likely auto-rollback occurred."
+            exit 1
+          fi
+
+          echo "✅ Service is running the promoted digest."
+
       - name: Summary
         run: |
           echo "### ✅ Deployed to ECS (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
