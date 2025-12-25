@@ -10,9 +10,8 @@ on:
         required: true
         type: string
       taskdef_path:
-        required: false
+        required: true
         type: string
-        default: app/ecs-taskdef.dev.json
     secrets:
       AWS_ROLE_ARN:
         required: true
@@ -47,6 +46,19 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Validate task definition matches environment
+        run: |
+          set -euo pipefail
+
+          FAMILY=$(jq -r '.family' "${{ inputs.taskdef_path }}")
+
+          if [[ "$FAMILY" != *"${{ inputs.environment }}"* ]]; then
+            echo "❌ Task definition family '$FAMILY' does not match environment '${{ inputs.environment }}'"
+            exit 1
+          fi
+
+          echo "✅ Task definition family '$FAMILY' matches environment '${{ inputs.environment }}'"
 
       - name: Inject execution role into task definition template
         run: |
