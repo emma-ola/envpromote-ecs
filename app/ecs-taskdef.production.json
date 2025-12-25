@@ -24,7 +24,7 @@
         },
         {
           "name": "APP_VERSION",
-          "value": "staging"
+          "value": "production"
         }
       ],
       "logConfiguration": {
