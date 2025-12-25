@@ -12,7 +12,7 @@ on:
       taskdef_path:
         required: false
         type: string
-        default: app/ecs-taskdef.json
+        default: app/ecs-taskdef.dev.json
     secrets:
       AWS_ROLE_ARN:
         required: true

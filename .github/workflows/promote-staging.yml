@@ -23,6 +23,7 @@ jobs:
     with:
       environment: staging
       digest: ${{ inputs.digest }}
+      taskdef_path: app/ecs-taskdef.staging.json
     secrets:
       AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
       AWS_REGION: ${{ secrets.AWS_REGION }}

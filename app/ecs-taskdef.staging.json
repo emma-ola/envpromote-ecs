@@ -1,0 +1,29 @@
+{
+  "family": "envpromote-ecs-staging",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "EXEC_ROLE_ARN_PLACEHOLDER",
+  "containerDefinitions": [
+    {
+      "name": "envpromote-ecs",
+      "image": "REPLACE_AT_DEPLOY_TIME",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 3000, "hostPort": 3000, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "APP_ENV", "value": "staging" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/envpromote-ecs-staging",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
