@@ -76,7 +76,9 @@ data "aws_iam_policy_document" "permissions" {
       "ecs:DescribeServices",
       "ecs:DescribeTaskDefinition",
       "ecs:RegisterTaskDefinition",
-      "ecs:UpdateService"
+      "ecs:UpdateService",
+      "ecs:ListTasks",
+      "ecs:DescribeTasks"
     ]
     resources = ["*"]
   }
