@@ -14,7 +14,8 @@
         { "containerPort": 3000, "hostPort": 3000, "protocol": "tcp" }
       ],
       "environment": [
-        { "name": "APP_ENV", "value": "staging" }
+        { "name": "APP_ENV", "value": "staging" },
+        { "name": "APP_VERSION", "value": "staging" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
