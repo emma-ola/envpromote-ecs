@@ -17,6 +17,7 @@ act/
 
 # Node.js dependencies
 node_modules/
+coverage/
 
 # Terraform
 **/.terraform/*
@@ -27,4 +28,6 @@ node_modules/
 
 # Optional: terraform plan files
 **/*.tfplan
+
+
 
