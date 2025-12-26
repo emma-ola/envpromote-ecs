@@ -21,6 +21,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
 COPY src ./src
 
+# Change ownership to node user
+RUN chown -R node:node /app
+
 # Expose application port
 EXPOSE 3000
 
