@@ -18,30 +18,32 @@ app.get("/", (req, res) => {
     });
 });
 
-// Start server
-const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
-
-// Graceful shutdown handler
-const gracefulShutdown = (signal) => {
-    console.log(`\n${signal} received, shutting down gracefully...`);
-
-    server.close(() => {
-        console.log("Server closed successfully. Exiting process.");
-        process.exit(0);
+// Only start server if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+    const server = app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
     });
 
-    // Force shutdown after 10 seconds if graceful shutdown hangs
-    setTimeout(() => {
-        console.error("Forcefully shutting down after 10 second timeout");
-        process.exit(1);
-    }, 10000);
-};
+    // Graceful shutdown handler
+    const gracefulShutdown = (signal) => {
+        console.log(`\n${signal} received, shutting down gracefully...`);
 
-// Handle termination signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+        server.close(() => {
+            console.log("Server closed successfully. Exiting process.");
+            process.exit(0);
+        });
+
+        // Force shutdown after 10 seconds if graceful shutdown hangs
+        setTimeout(() => {
+            console.error("Forcefully shutting down after 10 second timeout");
+            process.exit(1);
+        }, 10000);
+    };
+
+    // Handle termination signals
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
 
 // Export app for testing
 module.exports = app;
