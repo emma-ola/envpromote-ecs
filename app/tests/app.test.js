@@ -5,97 +5,56 @@
 const request = require('supertest');
 const app = require('../src/index');
 
-// Test runner
-(async () => {
-    console.log('\n=== Running Unit Tests ===\n');
-    let failedTests = 0;
+describe('GET /health', () => {
+  it('should return 200 status code', async () => {
+    const res = await request(app).get('/health');
+    expect(res.statusCode).toBe(200);
+  });
 
-    // Helper function to run a test
-    async function runTest(description, testFn) {
-        try {
-            await testFn();
-            console.log(`✅ ${description}`);
-        } catch (error) {
-            console.error(`❌ ${description}`);
-            console.error(`   ${error.message}`);
-            failedTests++;
-        }
-    }
+  it('should return JSON with status ok', async () => {
+    const res = await request(app).get('/health');
+    expect(res.body).toEqual({ status: 'ok' });
+  });
 
-    // Health endpoint tests
-    console.log('Testing GET /health');
+  it('should have content-type application/json', async () => {
+    const res = await request(app).get('/health');
+    expect(res.headers['content-type']).toMatch(/application\/json/);
+  });
+});
 
-    await runTest('should return 200 status code', async () => {
-        const res = await request(app).get('/health');
-        if (res.statusCode !== 200) {
-            throw new Error(`Expected status 200, got ${res.statusCode}`);
-        }
-    });
+describe('GET /', () => {
+  it('should return 200 status code', async () => {
+    const res = await request(app).get('/');
+    expect(res.statusCode).toBe(200);
+  });
 
-    await runTest('should return JSON with status ok', async () => {
-        const res = await request(app).get('/health');
-        if (!res.body || res.body.status !== 'ok') {
-            throw new Error(`Expected { status: "ok" }, got ${JSON.stringify(res.body)}`);
-        }
-    });
+  it('should return service information with correct structure', async () => {
+    const res = await request(app).get('/');
 
-    await runTest('should have content-type application/json', async () => {
-        const res = await request(app).get('/health');
-        if (!res.headers['content-type']?.includes('application/json')) {
-            throw new Error(`Expected content-type application/json, got ${res.headers['content-type']}`);
-        }
-    });
+    expect(res.body).toHaveProperty('service', 'envpromote-ecs-app');
+    expect(res.body).toHaveProperty('message');
+    expect(res.body).toHaveProperty('environment');
+    expect(res.body).toHaveProperty('version');
 
-    // Root endpoint tests
-    console.log('\nTesting GET /');
+    expect(typeof res.body.message).toBe('string');
+    expect(typeof res.body.environment).toBe('string');
+    expect(typeof res.body.version).toBe('string');
+  });
 
-    await runTest('should return 200 status code', async () => {
-        const res = await request(app).get('/');
-        if (res.statusCode !== 200) {
-            throw new Error(`Expected status 200, got ${res.statusCode}`);
-        }
-    });
+  it('should have content-type application/json', async () => {
+    const res = await request(app).get('/');
+    expect(res.headers['content-type']).toMatch(/application\/json/);
+  });
+});
 
-    await runTest('should return service information', async () => {
-        const res = await request(app).get('/');
-        if (res.body.service !== 'envpromote-ecs-app') {
-            throw new Error(`Expected service name "envpromote-ecs-app", got ${res.body.service}`);
-        }
-        if (!res.body.message) {
-            throw new Error('Expected message field in response');
-        }
-        if (!res.body.environment) {
-            throw new Error('Expected environment field in response');
-        }
-        if (!res.body.version) {
-            throw new Error('Expected version field in response');
-        }
-    });
+describe('404 Not Found', () => {
+  it('should return 404 for undefined routes', async () => {
+    const res = await request(app).get('/nonexistent');
+    expect(res.statusCode).toBe(404);
+  });
 
-    await runTest('should have content-type application/json', async () => {
-        const res = await request(app).get('/');
-        if (!res.headers['content-type']?.includes('application/json')) {
-            throw new Error(`Expected content-type application/json, got ${res.headers['content-type']}`);
-        }
-    });
-
-    // 404 tests
-    console.log('\nTesting 404 Not Found');
-
-    await runTest('should return 404 for undefined routes', async () => {
-        const res = await request(app).get('/nonexistent');
-        if (res.statusCode !== 404) {
-            throw new Error(`Expected status 404 for undefined route, got ${res.statusCode}`);
-        }
-    });
-
-    // Summary
-    console.log('\n=========================');
-    if (failedTests === 0) {
-        console.log('✅ All tests passed!\n');
-        process.exit(0);
-    } else {
-        console.log(`❌ ${failedTests} test(s) failed\n`);
-        process.exit(1);
-    }
-})();
+  it('should return 404 for other undefined routes', async () => {
+    const res = await request(app).get('/api/users');
+    expect(res.statusCode).toBe(404);
+  });
+});
