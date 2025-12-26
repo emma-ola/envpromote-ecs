@@ -225,3 +225,29 @@ output "task_definition_family" {
 output "task_execution_role_arn" {
   value = aws_iam_role.task_execution.arn
 }
+
+# CloudWatch Alarm Outputs
+output "alarm_cpu_high_arn" {
+  value       = var.enable_alarms ? aws_cloudwatch_metric_alarm.cpu_high[0].arn : null
+  description = "ARN of the CPU high utilization alarm"
+}
+
+output "alarm_memory_high_arn" {
+  value       = var.enable_alarms ? aws_cloudwatch_metric_alarm.memory_high[0].arn : null
+  description = "ARN of the memory high utilization alarm"
+}
+
+output "alarm_unhealthy_targets_arn" {
+  value       = var.enable_alarms ? aws_cloudwatch_metric_alarm.unhealthy_targets[0].arn : null
+  description = "ARN of the unhealthy targets alarm"
+}
+
+output "alarm_task_count_low_arn" {
+  value       = var.enable_alarms ? aws_cloudwatch_metric_alarm.task_count_low[0].arn : null
+  description = "ARN of the low task count alarm"
+}
+
+output "alarm_high_response_time_arn" {
+  value       = var.enable_alarms ? aws_cloudwatch_metric_alarm.high_response_time[0].arn : null
+  description = "ARN of the high response time alarm"
+}
