@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "node src/index.js",
     "start": "node src/index.js",
-    "test": "node tests/smoke.test.js"
+    "test": "node tests/app.test.js"
   },
   "dependencies": {
     "express": "5.0.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
   },
   "repository": {
     "type": "git",
