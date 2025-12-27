@@ -11,14 +11,28 @@ data "aws_ecr_repository" "app" {
   name = "envpromote-ecs"
 }
 
+# SNS Topic for CloudWatch Alarm Notifications
+module "alarm_topic" {
+  source       = "../../modules/sns-topic"
+  name         = "envpromote-ecs-alarms-staging"
+  display_name = "EnvPromote ECS Alarms - Staging"
+  tags         = local.tags
+}
+
 module "ecs_app" {
-  source      = "../../modules/ecs-fargate-service"
-  name        = "envpromote-ecs"
-  environment = "staging"
-  image = "${data.aws_ecr_repository.app.repository_url}:latest"
+  source = "../../modules/ecs-fargate-service"
+
+  name          = "envpromote-ecs"
+  environment   = "staging"
+  image         = "${data.aws_ecr_repository.app.repository_url}:latest"
   desired_count = 1
   cpu           = 256
   memory        = 512
+
+  # Configure CloudWatch alarms with SNS notifications
+  enable_alarms       = true
+  alarm_sns_topic_arn = module.alarm_topic.topic_arn
+
   tags = local.tags
 }
 
@@ -30,29 +44,4 @@ module "github_oidc_role" {
   role_name          = "envpromote-gha-staging"
   ecr_repository_arn = data.aws_ecr_repository.app.arn
   tags = local.tags
-}
-
-# noinspection HttpUrlsUsage
-output "staging_alb_url" {
-  value = "http://${module.ecs_app.alb_dns_name}"
-}
-
-output "staging_ecs_cluster_name" {
-  value = module.ecs_app.ecs_cluster_name
-}
-
-output "staging_ecs_service_name" {
-  value = module.ecs_app.ecs_service_name
-}
-
-output "staging_task_execution_role_arn" {
-  value = module.ecs_app.task_execution_role_arn
-}
-
-output "staging_github_actions_role_arn" {
-  value = module.github_oidc_role.role_arn
-}
-
-output "ecr_repository_url" {
-  value = data.aws_ecr_repository.app.repository_url
 }
