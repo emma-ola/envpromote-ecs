@@ -1,7 +1,64 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# Create a customer-managed KMS key for SNS encryption with CloudWatch permissions
+resource "aws_kms_key" "sns" {
+  count               = var.enable_encryption ? 1 : 0
+  description         = "KMS key for SNS topic ${var.name}"
+  enable_key_rotation = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudwatch.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow SNS to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "sns.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_kms_alias" "sns" {
+  count         = var.enable_encryption ? 1 : 0
+  name          = "alias/${var.name}"
+  target_key_id = aws_kms_key.sns[0].key_id
+}
+
 resource "aws_sns_topic" "this" {
   name              = var.name
   display_name      = var.display_name
-  kms_master_key_id = var.enable_encryption ? "alias/aws/sns" : null
+  kms_master_key_id = var.enable_encryption ? aws_kms_key.sns[0].id : null
   tags              = var.tags
 }
 
