@@ -50,27 +50,38 @@ This project implements a promotion-based CI/CD pipeline with the following char
 ## 🏗️ Architecture (High Level)
 
 **GitHub Actions**
-- CI build & push
+- CI build & push with security scanning
 - Reusable deploy workflow
 - Manual promotion workflows
+- Automated testing with Jest
 
 **Amazon ECR**
 - Single repository
 - Immutable image digests
+- Vulnerability scanning with Trivy
 
 **Amazon ECS (Fargate)**
 - Separate clusters/services per environment
 - Deployment circuit breaker enabled
+- Container Insights for enhanced monitoring
+- Graceful shutdown handling (SIGTERM/SIGINT)
 
 **Terraform**
 - Infrastructure as Code
 - Separate state per environment
+- Modular design for reusability
 
 **AWS IAM (OIDC)**
 - No long-lived AWS credentials
 
-**CloudWatch Logs**
+**CloudWatch**
 - Environment-specific log groups
+- Automated alarms (CPU, memory, health, response time)
+- SNS integration for notifications
+
+**Slack Integration**
+- Real-time alarm notifications via AWS Chatbot
+- Environment-specific channels
 
 ## 🧭 Deployment Flow
 
@@ -128,28 +139,37 @@ This provides:
 
 ```
 .github/workflows/
-  reusable-deploy-ecs.yml
-  dev.yml
-  promote-staging.yml
-  promote-production.yml
-  reuseable-build.yml
-  ci.yml
+  reusable-deploy-ecs.yml    # Reusable deployment workflow
+  dev.yml                    # Dev environment CI/CD
+  promote-staging.yml        # Staging promotion workflow
+  promote-production.yml     # Production promotion workflow
+  reuseable-build.yml        # Reusable build workflow with security scanning
+  ci.yml                     # CI checks (test, security audit)
 
 app/
-  ecs-taskdef.dev.json
-  ecs-taskdef.staging.json
-  ecs-taskdef.production.json
-  Dockerfile
-  src/
-  tests/
+  ecs-taskdef.dev.json       # Dev task definition
+  ecs-taskdef.staging.json   # Staging task definition
+  ecs-taskdef.production.json # Production task definition
+  Dockerfile                 # Multi-stage optimized build
+  .dockerignore              # Docker build exclusions
+  src/                       # Application source code
+  tests/                     # Jest test suite
+  jest.config.js             # Jest configuration
+  jest.setup.js              # Jest test environment setup
 
 infra/
   bootstrap/
+    bootstrap-oidc/          # OIDC provider setup
+    us-east-1/               # State bucket
   modules/
+    ecr/                     # ECR repository module
+    ecs-fargate-service/     # ECS service + ALB + CloudWatch alarms
+    github-oidc-role/        # IAM OIDC role module
+    sns-topic/               # SNS topic with KMS encryption
   envs/
-    dev/
-    staging/
-    production/
+    dev/                     # Dev environment config
+    staging/                 # Staging environment config
+    prod/                    # Production environment config
 
 README.md
 ```
@@ -185,6 +205,56 @@ docker build -t envpromote-ecs:local ./app
 docker run -p 3000:3000 envpromote-ecs:local
 ```
 
+Container features:
+- Multi-stage build for optimized image size
+- Runs as non-root user for security
+- Graceful shutdown handling
+
+## 🧪 Testing
+
+Run the test suite with Jest:
+
+```bash
+cd app
+npm test              # Run all tests
+npm run test:watch    # Watch mode for development
+npm run test:coverage # Generate coverage report
+```
+
+All tests run in CI before deployment.
+
+## 🔒 Security Features
+
+**Container Security**
+- Multi-stage Docker builds
+- Non-root container user
+- Vulnerability scanning with Trivy in CI/CD
+- Regular npm security audits
+
+**Infrastructure Security**
+- OIDC authentication (no long-lived credentials)
+- KMS encryption for SNS topics
+- State locking to prevent concurrent modifications
+- IAM least-privilege policies
+
+**Monitoring & Alerting**
+- CloudWatch alarms for critical metrics
+- Real-time Slack notifications via AWS Chatbot
+- Container Insights for enhanced observability
+- Automatic health checks and rollback
+
+## 📊 CloudWatch Alarms
+
+Each environment includes the following alarms:
+
+- **High CPU Utilization** — triggers when CPU > 80%
+- **High Memory Utilization** — triggers when memory > 80%
+- **Unhealthy Target Count** — triggers when targets are unhealthy
+- **Low Running Task Count** — triggers when tasks < desired count
+- **High Response Time** — triggers when response time > 2 seconds
+
+All alarms send notifications to environment-specific SNS topics, which can be routed to Slack via AWS Chatbot.
+
 ## 🧠 Key Takeaways
 
 - CI should build artifacts; CD should promote them
@@ -192,15 +262,23 @@ docker run -p 3000:3000 envpromote-ecs:local
 - Production deployments should require intent and approval
 - Rollback must be automatic, not manual
 - Reusable workflows scale better than copy-paste pipelines
+- Security scanning and testing should be built into the pipeline
+- Monitoring and alerting are critical for production readiness
+- Infrastructure as Code enables reproducibility and consistency
 
 ## 🚀 Why This Matters
 
 This project demonstrates real-world DevOps practices:
 
-- Promotion-based delivery
-- Safe production releases
-- Auditability
-- Cloud-native security
-- Infrastructure as Code
+- **Promotion-based delivery** — build once, deploy everywhere
+- **Safe production releases** — automated testing, rollback, and approvals
+- **Auditability** — promotion history and deployment records
+- **Cloud-native security** — OIDC, encryption, least-privilege IAM
+- **Infrastructure as Code** — reproducible, version-controlled infrastructure
+- **Observability** — comprehensive monitoring, alerting, and logging
+- **Container best practices** — multi-stage builds, security scanning, graceful shutdown
 
-It reflects how modern platform and DevOps teams ship software reliably at scale.
+## 📚 Additional Documentation
+
+- [Infrastructure Setup Guide](infra/README.md) — Terraform deployment instructions
+- [GitHub Actions Workflows](.github/workflows/) — CI/CD pipeline configuration
