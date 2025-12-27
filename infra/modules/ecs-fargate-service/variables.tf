@@ -39,7 +39,7 @@ variable "tags" {
 # CloudWatch Alarm Variables
 variable "enable_alarms" {
   type        = bool
-  default     = true
+  default     = false
   description = "Enable CloudWatch alarms for monitoring"
 }
 

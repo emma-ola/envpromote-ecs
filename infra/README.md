@@ -18,7 +18,8 @@ infra/
 └── modules/
     ├── ecr/                       # ECR repository module
     ├── ecs-fargate-service/       # ECS Fargate service + ALB module
-    └── github-oidc-role/          # IAM role for GitHub Actions OIDC
+    ├── github-oidc-role/          # IAM role for GitHub Actions OIDC
+    └── sns-topic/                 # SNS topic for alarm notifications
 ```
 
 ---
@@ -176,13 +177,14 @@ Creates an IAM role that GitHub Actions can assume via OIDC.
 
 ### `modules/ecs-fargate-service`
 Creates a complete ECS Fargate service with:
-- ECS cluster
+- ECS cluster with Container Insights
 - ECS service with deployment circuit breaker
 - Application Load Balancer (ALB)
 - Target group with health checks
 - Security groups
 - IAM roles (task execution, task role)
 - CloudWatch log group
+- CloudWatch alarms (CPU, memory, unhealthy targets, task count, response time)
 
 **Inputs:**
 - `environment` — environment name
@@ -193,6 +195,8 @@ Creates a complete ECS Fargate service with:
 - `memory` — task memory (MB)
 - `tags` — resource tags
 - `container_port` — container port
+- `enable_alarms` — enable CloudWatch alarms (default: false)
+- `alarm_sns_topic_arn` — SNS topic ARN for alarm notifications
 
 **Outputs:**
 - `ecs_cluster_name`
@@ -200,6 +204,22 @@ Creates a complete ECS Fargate service with:
 - `alb_dns_name`
 - `task_execution_role_arn`
 - `task_definition_family`
+
+---
+
+### `modules/sns-topic`
+Creates an SNS topic for CloudWatch alarm notifications.
+
+**Inputs:**
+- `name` — SNS topic name
+- `display_name` — display name for notifications
+- `enable_encryption` — enable KMS encryption (default: true)
+- `tags` — resource tags
+
+**Outputs:**
+- `topic_arn` — SNS topic ARN
+- `topic_name` — SNS topic name
+- `topic_id` — SNS topic ID
 
 ---
 
@@ -227,6 +247,66 @@ terraform destroy
 
 ---
 
+## Slack Alarm Notifications
+
+CloudWatch alarms can send notifications to Slack via AWS Chatbot. Each environment creates an SNS topic that receives alarm notifications.
+
+### Setup AWS Chatbot (One-time per environment)
+
+After deploying an environment, configure AWS Chatbot to route SNS notifications to Slack:
+
+1. **Get SNS Topic ARN from Terraform output:**
+   ```bash
+   cd infra/envs/dev  # or staging, or prod
+   terraform output alarm_topic_arn
+   ```
+
+2. **Configure AWS Chatbot in AWS Console:**
+   - Navigate to AWS Chatbot → https://console.aws.amazon.com/chatbot
+   - Click "Configure new client" → Select "Slack"
+   - Authorize AWS Chatbot to access your Slack workspace
+   - Click "Configure new channel"
+   - Select your Slack channel (e.g., `#aws-alarms-dev`)
+   - Add the SNS topic ARN from step 1
+   - Configure IAM permissions (use default CloudWatch read permissions)
+   - Click "Configure"
+
+3. **Repeat for each environment** (dev, staging, prod) with separate Slack channels
+
+### Testing Alarm Notifications
+
+To test that alarms are properly configured:
+
+1. **Trigger a test alarm manually:**
+   ```bash
+   aws cloudwatch set-alarm-state \
+     --alarm-name "envpromote-ecs-dev-high-cpu" \
+     --state-value ALARM \
+     --state-reason "Testing Slack notifications"
+   ```
+
+2. **Check your Slack channel** for the alarm notification
+
+3. **Reset the alarm state:**
+   ```bash
+   aws cloudwatch set-alarm-state \
+     --alarm-name "envpromote-ecs-dev-high-cpu" \
+     --state-value OK \
+     --state-reason "Test completed"
+   ```
+
+### Available Alarms
+
+Each environment has the following CloudWatch alarms (when `enable_alarms = true`):
+
+- **High CPU Utilization** — triggers when average CPU > 80% for 2 consecutive periods
+- **High Memory Utilization** — triggers when average memory > 80% for 2 consecutive periods
+- **Unhealthy Target Count** — triggers when unhealthy targets > 0 for 2 consecutive periods
+- **Low Running Task Count** — triggers when running tasks < desired count for 2 consecutive periods
+- **High Target Response Time** — triggers when average response time > 2 seconds for 2 consecutive periods
+
+---
+
 ## Notes
 
 - Each environment uses separate Terraform state (local by default)
@@ -234,6 +314,8 @@ terraform destroy
 - ECS services are configured with deployment circuit breakers for automatic rollback
 - All resources are tagged for cost tracking and resource management
 - The ECR repository is shared across environments, but each environment has its own ECS service and task definition family
+- CloudWatch alarms send notifications to environment-specific SNS topics
+- AWS Chatbot must be configured manually (cannot be fully automated with Terraform)
 
 ---
 

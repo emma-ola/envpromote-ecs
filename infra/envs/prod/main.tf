@@ -11,14 +11,28 @@ data "aws_ecr_repository" "app" {
   name = "envpromote-ecs"
 }
 
+# SNS Topic for CloudWatch Alarm Notifications
+module "alarm_topic" {
+  source       = "../../modules/sns-topic"
+  name         = "envpromote-ecs-alarms-production"
+  display_name = "EnvPromote ECS Alarms - Production"
+  tags         = local.tags
+}
+
 module "ecs_app" {
-  source      = "../../modules/ecs-fargate-service"
-  name        = "envpromote-ecs"
-  environment = "production"
-  image = "${data.aws_ecr_repository.app.repository_url}:latest"
+  source = "../../modules/ecs-fargate-service"
+
+  name          = "envpromote-ecs"
+  environment   = "production"
+  image         = "${data.aws_ecr_repository.app.repository_url}:latest"
   desired_count = 2
   cpu           = 256
   memory        = 512
+
+  # Configure CloudWatch alarms with SNS notifications
+  enable_alarms       = true
+  alarm_sns_topic_arn = module.alarm_topic.topic_arn
+
   tags = local.tags
 }
 
@@ -30,29 +44,4 @@ module "github_oidc_role" {
   role_name          = "envpromote-gha-production"
   ecr_repository_arn = data.aws_ecr_repository.app.arn
   tags = local.tags
-}
-
-# noinspection HttpUrlsUsage
-output "production_alb_url" {
-  value = "http://${module.ecs_app.alb_dns_name}"
-}
-
-output "production_ecs_cluster_name" {
-  value = module.ecs_app.ecs_cluster_name
-}
-
-output "production_ecs_service_name" {
-  value = module.ecs_app.ecs_service_name
-}
-
-output "production_task_execution_role_arn" {
-  value = module.ecs_app.task_execution_role_arn
-}
-
-output "production_github_actions_role_arn" {
-  value = module.github_oidc_role.role_arn
-}
-
-output "ecr_repository_url" {
-  value = data.aws_ecr_repository.app.repository_url
 }
