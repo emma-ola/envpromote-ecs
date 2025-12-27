@@ -31,6 +31,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      security-events: write
 
     outputs:
       digest: ${{ steps.buildpush.outputs.digest }}
@@ -62,3 +63,30 @@ jobs:
             ${{ secrets.ECR_REPOSITORY_URL }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: false
+
+      - name: Set image URI for scanning
+        id: set-image-uri
+        run: echo "image_uri=${{ secrets.ECR_REPOSITORY_URL }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ steps.set-image-uri.outputs.image_uri }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Fail on critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ steps.set-image-uri.outputs.image_uri }}
+          exit-code: '1'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
