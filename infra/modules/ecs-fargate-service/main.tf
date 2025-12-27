@@ -20,6 +20,11 @@ resource "aws_cloudwatch_log_group" "this" {
 
 resource "aws_ecs_cluster" "this" {
   name = "${var.name}-${var.environment}"
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
   tags = var.tags
 }
 

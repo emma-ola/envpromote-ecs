@@ -13,7 +13,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   threshold           = var.cpu_alarm_threshold
   alarm_description   = "ECS service CPU utilization is above ${var.cpu_alarm_threshold}% for 10 minutes"
   alarm_actions       = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "missing"
 
   dimensions = {
     ServiceName = aws_ecs_service.this.name
@@ -36,7 +36,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   threshold           = var.memory_alarm_threshold
   alarm_description   = "ECS service memory utilization is above ${var.memory_alarm_threshold}% for 10 minutes"
   alarm_actions       = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "missing"
 
   dimensions = {
     ServiceName = aws_ecs_service.this.name
@@ -59,7 +59,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
   threshold           = 0
   alarm_description   = "ALB has unhealthy targets - ECS tasks are failing health checks"
   alarm_actions       = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "missing"
 
   dimensions = {
     TargetGroup  = aws_lb_target_group.this.arn_suffix
@@ -78,11 +78,11 @@ resource "aws_cloudwatch_metric_alarm" "task_count_low" {
   metric_name         = "RunningTaskCount"
   namespace           = "ECS/ContainerInsights"
   period              = 60
-  statistic           = "Average"
+  statistic           = "Minimum"
   threshold           = var.desired_count
   alarm_description   = "ECS service has fewer running tasks than desired count - service may be degraded"
   alarm_actions       = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
-  treat_missing_data  = "breaching"
+  treat_missing_data  = "missing"
 
   dimensions = {
     ServiceName = aws_ecs_service.this.name
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_metric_alarm" "high_response_time" {
   threshold           = var.response_time_threshold
   alarm_description   = "ALB target response time is above ${var.response_time_threshold}s for 2 minutes"
   alarm_actions       = var.alarm_sns_topic_arn != "" ? [var.alarm_sns_topic_arn] : []
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "missing"
 
   dimensions = {
     TargetGroup  = aws_lb_target_group.this.arn_suffix
